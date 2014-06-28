@@ -1,0 +1,3 @@
+#+TITLE: My Emacs elpa package repo
+
+The Emacs elpa packages I'm using. I keep this package repo under version control so if some packages update corrupt my emacs I could go back.
