@@ -1,14 +1,14 @@
 ;;; ibuffer-vc-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+
 
 ;;;### (autoloads (ibuffer-vc-set-filter-groups-by-vc-root ibuffer-vc-generate-filter-groups-by-vc-root)
-;;;;;;  "ibuffer-vc" "ibuffer-vc.el" (20925 45509 161553 730000))
+;;;;;;  "ibuffer-vc" "ibuffer-vc.el" (21546 22935 31356 254000))
 ;;; Generated autoloads from ibuffer-vc.el
 
 (autoload 'ibuffer-vc-generate-filter-groups-by-vc-root "ibuffer-vc" "\
-Create a set of ibuffer filter groups based on the vc root dirs of buffers
+Create a set of ibuffer filter groups based on the vc root dirs of buffers.
 
 \(fn)" nil nil)
 
@@ -22,14 +22,16 @@ Set the current filter groups to filter by vc root dir.
 
 ;;;***
 
-;;;### (autoloads nil nil ("ibuffer-vc-pkg.el") (20925 45509 168197
-;;;;;;  874000))
+;;;### (autoloads nil nil ("ibuffer-vc-pkg.el") (21546 22935 229944
+;;;;;;  845000))
 
 ;;;***
 
+(provide 'ibuffer-vc-autoloads)
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; ibuffer-vc-autoloads.el ends here

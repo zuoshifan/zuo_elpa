@@ -7,7 +7,7 @@
 ;; Package-Requires: ((cl-lib "0.2"))
 ;; X-URL: http://github.com/purcell/ibuffer-vc
 ;; URL: http://github.com/purcell/ibuffer-vc
-;; Version: 20130407.2042
+;; Version: 0.7
 ;; X-Original-Version: DEV
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -89,18 +89,20 @@
 ;;; Group and filter ibuffer entries by parent vc directory
 
 (defun ibuffer-vc--include-file-p (file)
+  "Return t iff FILE should be included in ibuffer-vc's filtering."
   (and file (or (null ibuffer-vc-skip-if-remote)
                 (not (file-remote-p file)))))
 
 (defun ibuffer-vc--deduce-backend (file)
+  "Return the vc backend for FILE, or nil if not under VC supervision."
   (or (vc-backend file)
       (cl-loop for backend in vc-handled-backends
                when (vc-call-backend backend 'responsible-p file)
                return backend)))
 
 (defun ibuffer-vc-root (buf)
-  "Return a cons cell (backend-name . root-dir), or nil if the
-file is not under version control"
+  "Return a cons cell (backend-name . root-dir) for BUF.
+If the file is not under version control, nil is returned instead."
   (let ((file-name (with-current-buffer buf (or buffer-file-name default-directory))))
     (when (ibuffer-vc--include-file-p file-name)
       (let ((backend (ibuffer-vc--deduce-backend file-name)))
@@ -123,7 +125,7 @@ file is not under version control"
 
 ;;;###autoload
 (defun ibuffer-vc-generate-filter-groups-by-vc-root ()
-  "Create a set of ibuffer filter groups based on the vc root dirs of buffers"
+  "Create a set of ibuffer filter groups based on the vc root dirs of buffers."
   (let ((roots (ibuffer-remove-duplicates
                 (delq nil (mapcar 'ibuffer-vc-root (buffer-list))))))
     (mapcar (lambda (vc-root)
@@ -147,6 +149,7 @@ file is not under version control"
 ;;; Display vc status info in the ibuffer list
 
 (defun ibuffer-vc--status-string ()
+  "Return a short string to represent the current buffer's status."
   (when (and buffer-file-name (ibuffer-vc--include-file-p buffer-file-name))
     (let ((state (vc-state buffer-file-name)))
       (if state
@@ -166,7 +169,7 @@ file is not under version control"
         (cond
          ((eq 'added state) "A")
          ((eq 'removed state) "D")
-         ((eq 'up-to-date state) "@")
+         ((eq 'up-to-date state) "=")
          ((eq 'edited state) "*")
          ((eq 'needs-update state) "O")
          ((memq state '(conflict needs-merge unlocked-changes)) "!")
