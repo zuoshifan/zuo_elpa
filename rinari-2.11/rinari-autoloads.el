@@ -1,10 +1,10 @@
 ;;; rinari-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+
 
 ;;;### (autoloads (global-rinari-mode rinari-minor-mode rinari-launch)
-;;;;;;  "rinari" "rinari.el" (20925 45515 221583 788000))
+;;;;;;  "rinari" "rinari.el" (21588 14256 371561 246000))
 ;;; Generated autoloads from rinari.el
 
 (autoload 'rinari-launch "rinari" "\
@@ -41,13 +41,15 @@ See `rinari-minor-mode' for more information on Rinari minor mode.
 
 ;;;***
 
-;;;### (autoloads nil nil ("rinari-pkg.el") (20925 45515 226123 814000))
+;;;### (autoloads nil nil ("rinari-pkg.el") (21588 14256 515172 593000))
 
 ;;;***
 
+(provide 'rinari-autoloads)
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; rinari-autoloads.el ends here
