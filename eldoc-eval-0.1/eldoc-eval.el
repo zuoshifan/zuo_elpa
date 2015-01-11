@@ -1,9 +1,9 @@
-;;; eldoc-eval.el --- Show eldoc when using M-:
-;; Version: 20130421.757
+;;; eldoc-eval.el --- Enable eldoc support when minibuffer is in use.
 
-;; Copyright (C) 2011 Free Software Foundation, Inc.
+;; Copyright (C) 2011, 2012 Free Software Foundation, Inc.
 
 ;; Author: Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Version: 0.1
 
 ;; This file is part of GNU Emacs.
 
@@ -21,10 +21,30 @@
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+;;
+;; This package enables eldoc support when minibuffer is in use.
+;;
+;; Eldoc info is shown by default in mode-line,
+;; but you can have eldoc info somewhere else by setting
+;; `eldoc-in-minibuffer-show-fn' to another function (e.g `tooltip-show').
+;;
+;; By default with this package `M-:' will use `pp-eval-expression'
+;; instead of `eval-expression'; you can change that by setting
+;; `eval-preferred-function'.
+;;
+;; It also provides a convenient macro to enable eldoc support
+;; in your own functions using minibuffer or in your defadvices,
+;; that is `with-eldoc-in-minibuffer'.
+;;
+;; Users of own minibuffer frame will have to set
+;; `eldoc-in-minibuffer-own-frame-p' to non-nil.
+;;
+;; You can turn off eldoc support in minibuffer any time
+;; by setting `eldoc-in-minibuffer' to nil.
 
 ;;; Code:
-
 (require 'eldoc)
+
 
 ;;; Minibuffer support.
 ;;  Enable displaying eldoc info in something else
@@ -46,36 +66,19 @@ Should take one arg: the string to display"
   :group 'eldoc
   :type 'number)
 
-(defcustom eldoc-eval-prefered-function 'pp-eval-expression
-  "Prefered function to use with `M-:'."
+(defcustom eval-preferred-function 'pp-eval-expression
+  "Preferred function to use with `M-:'."
   :group 'lisp
   :type 'function)
 
 (defcustom  eldoc-in-minibuffer-own-frame-p nil
-  "Whether minibuffer have own frame or not."
+  "Whether minibuffer has its own frame or not."
   :group 'lisp
   :type 'boolean)
 
-;;; Compatibility with Emacs-24.4
-;; New implementation of eldoc in minibuffer that come
-;; with Emacs-24.4 show the eldoc info of current-buffer while
-;; minibuffer is in use, disable this and inline old Emacs behavior.
-
-(when (boundp 'eldoc-message-function)
-  (setq eldoc-message-function 'message)
-
-  (defun eldoc-display-message-no-interference-p ()
-    (and eldoc-mode
-         (not executing-kbd-macro)
-         (not (and (boundp 'edebug-active) edebug-active))
-         ;; Having this mode operate in an active minibuffer/echo area causes
-         ;; interference with what's going on there.
-         (not cursor-in-echo-area)
-         (not (eq (selected-window) (minibuffer-window))))))
-
 ;; Internal.
 (defvar eldoc-active-minibuffers-list nil
-  "Store actives minibuffers with eldoc enabled.")
+  "List of active minibuffers with eldoc enabled.")
 (defvar eldoc-mode-line-rolling-flag nil)
 
 (defun eldoc-store-minibuffer ()
@@ -86,7 +89,7 @@ See `with-eldoc-in-minibuffer'."
     (push (buffer-name) eldoc-active-minibuffers-list)))
 
 (defmacro with-eldoc-in-minibuffer (&rest body)
-  "Enable eldoc support for minibuffer input that run in BODY."
+  "Enable eldoc support for minibuffer input that runs in BODY."
   (declare (indent 0) (debug t))
   `(let ((timer (and eldoc-in-minibuffer
                      (run-with-idle-timer
@@ -99,21 +102,21 @@ See `with-eldoc-in-minibuffer'."
              'eldoc-store-minibuffer
            ,@body)
        (and timer (cancel-timer timer))
-       ;; Each time a minibuffer exit or abort
-       ;; his buffer is removed from stack,
+       ;; Each time a minibuffer exits or aborts
+       ;; its buffer is removed from stack,
        ;; assuming we can only exit the active minibuffer
        ;; on top of stack.
        (setq eldoc-active-minibuffers-list
              (cdr eldoc-active-minibuffers-list)))))
 
 (defun eldoc-current-buffer ()
-  "The `current-buffer' before activating minibuffer."
+  "Return the current buffer prior to activating the minibuffer."
   (with-selected-frame (last-nonminibuffer-frame)
     (window-buffer
      (cond (eldoc-in-minibuffer-own-frame-p
             (selected-window))
            ((fboundp 'window-in-direction)
-            (window-in-direction 
+            (window-in-direction
              'above (minibuffer-window)))
            (t (minibuffer-selected-window))))))
 
@@ -146,34 +149,60 @@ See `with-eldoc-in-minibuffer'."
 
 (defun eldoc-mode-in-minibuffer ()
   "Show eldoc for current minibuffer input."
-  (let ((buf (buffer-name (window-buffer (active-minibuffer-window)))))
+  (let ((buf (with-selected-window (minibuffer-window)
+               (buffer-name))))
     ;; If this minibuffer have been started with
     ;;`with-eldoc-in-minibuffer' give it eldoc support
     ;; and update mode-line, otherwise do nothing.
-    (condition-case err
-        (when (member buf eldoc-active-minibuffers-list)
-          (with-current-buffer buf
-            (let* ((sym (save-excursion
+    (when (member buf eldoc-active-minibuffers-list)
+      (let* ((str-all (with-current-buffer buf
+                        (minibuffer-completion-contents)))
+             (sym     (when str-all
+                        (with-temp-buffer
+                          (insert str-all)
+                          (goto-char (point-max))
                           (unless (looking-back ")\\|\"")
                             (forward-char -1))
-                          (eldoc-current-symbol)))
-                   (info-fn (eldoc-fnsym-in-current-sexp))
-                   (doc     (or (eldoc-get-var-docstring sym)
-                                (eldoc-get-fnsym-args-string
-                                 (car info-fn) (cadr info-fn)))))
-              (when doc (funcall eldoc-in-minibuffer-show-fn doc)))))
-      (scan-error nil)
-      (beginning-of-buffer nil)
-      (error (message "Eldoc in minibuffer error: %S" err)))))
+                          (eldoc-current-symbol))))
+             (info-fn (eldoc-fnsym-in-current-sexp))
+             (doc     (or (eldoc-get-var-docstring sym)
+                          (eldoc-get-fnsym-args-string
+                           (car info-fn) (cadr info-fn)))))
+        (when doc (funcall eldoc-in-minibuffer-show-fn doc))))))
 
 (defun eval-expression-with-eldoc ()
   "Eval expression with eldoc support in mode-line."
   (interactive)
   (with-eldoc-in-minibuffer
-    (call-interactively eldoc-eval-prefered-function)))
+    (call-interactively eval-preferred-function)))
 
 ;; Bind it to `M-:'.
 (global-set-key [remap eval-expression] 'eval-expression-with-eldoc)
+
+;;;; ChangeLog:
+
+;; 2012-10-27  Andreas Schwab  <schwab@linux-m68k.org>
+;; 
+;; 	* eldoc-eval.el: Spelling and doc fixes.
+;; 	(eval-preferred-function): Renamed from eval-prefered-function.
+;; 
+;; 2011-10-23  Chong Yidong  <cyd@gnu.org>
+;; 
+;; 	Add version tag to eldoc-eval.
+;; 
+;; 2011-10-15  thierry volpiatto  <thierry.volpiatto@gmail.com
+;; 
+;; 	* eldoc-eval.el Add infos in Commentary section.
+;; 
+;; 2011-10-11  Chong Yidong  <cyd@stupidchicken.com>
+;; 
+;; 	Fix header line in eldoc-eval.el.
+;; 
+;; 2011-09-25  Stefan Monnier  <monnier@iro.umontreal.ca>
+;; 
+;; 	New package eldoc-eval.
+;; 
+
 
 
 (provide 'eldoc-eval)
