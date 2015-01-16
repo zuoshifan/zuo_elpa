@@ -3,8 +3,8 @@
 ;;; Code:
 
 
-;;;### (autoloads (ebib-open-org-link ebib) "ebib" "ebib.el" (21482
-;;;;;;  48339 648681 441000))
+;;;### (autoloads (ebib-open-org-link ebib) "ebib" "ebib.el" (21682
+;;;;;;  35523 163092 140000))
 ;;; Generated autoloads from ebib.el
 
 (autoload 'ebib "ebib" "\
@@ -23,7 +23,7 @@ This is for use in Org-mode links.
 ;;;***
 
 ;;;### (autoloads nil nil ("ebib-db.el" "ebib-filters.el" "ebib-keywords.el"
-;;;;;;  "ebib-pkg.el" "ebib-utils.el") (21482 48339 858688 98000))
+;;;;;;  "ebib-pkg.el" "ebib-utils.el") (21682 35523 218990 805000))
 
 ;;;***
 
